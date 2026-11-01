@@ -1,0 +1,86 @@
+name: Build Windows installer
+on:
+  workflow_dispatch:
+    inputs:
+      whisper:
+        description: "Whisper model to bundle (tiny/base/small/medium)"
+        default: "small"
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-build.txt
+      - name: Unit tests (parser + engine, dry-run)
+        run: python -m unittest discover -s tests -v
+      - name: Icon
+        run: python tools/make_icon.py
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: models-${{ inputs.whisper || 'small' }}-v1
+      - name: Download offline models (build step only; the shipped app never downloads)
+        run: python tools/fetch_models.py --whisper ${{ inputs.whisper || 'small' }}
+      - name: PyInstaller
+        run: pyinstaller BanglaVoiceCommander.spec --noconfirm --clean
+      - name: Bundle models next to the exe
+        run: Copy-Item -Recurse -Force models dist\BanglaVoiceCommander\models
+      - name: OFFLINE self-test (outbound network blocked by firewall)
+        shell: pwsh
+        run: |
+          $exe = "$PWD\dist\BanglaVoiceCommander\BanglaVoiceCommander.exe"
+          New-NetFirewallRule -DisplayName "bvc-block-out" -Direction Outbound -Program $exe -Action Block | Out-Null
+          New-Item -ItemType Directory -Force release | Out-Null
+          $p = Start-Process $exe -ArgumentList "--selftest","--report","$PWD\release\selftest_offline.json" -Wait -PassThru
+          Get-Content release\selftest_offline.json
+          $r = Get-Content release\selftest_offline.json -Raw | ConvertFrom-Json
+          if ($r.network_reachable) { throw "firewall rule did not block the network - test invalid" }
+          if ($p.ExitCode -ne 0) { throw "offline self-test failed" }
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build installer
+        run: iscc "/DAppVersion=1.0.${{ github.run_number }}" installer\BanglaVoiceCommander.iss
+      - name: Silent install -> self-test -> uninstall (clean-machine check)
+        shell: pwsh
+        run: |
+          $setup = "$PWD\release\BanglaVoiceCommander_Setup.exe"
+          Start-Process $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=C:\bvc_test","/LOG=$PWD\release\install.log" -Wait
+          if (-not (Test-Path C:\bvc_test\BanglaVoiceCommander.exe)) { throw "install failed" }
+          if (-not (Test-Path "$env:PUBLIC\Desktop\Bangla Voice Commander.lnk")) { Write-Warning "desktop shortcut not found in Public Desktop" }
+          $p = Start-Process C:\bvc_test\BanglaVoiceCommander.exe -ArgumentList "--selftest","--report","$PWD\release\selftest_installed.json" -Wait -PassThru
+          Get-Content release\selftest_installed.json
+          if ($p.ExitCode -ne 0) { throw "installed app self-test failed" }
+          Start-Process C:\bvc_test\unins000.exe -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES" -Wait
+          if (Test-Path C:\bvc_test\BanglaVoiceCommander.exe) { throw "uninstall left files behind" }
+      - name: Portable zip
+        shell: pwsh
+        run: |
+          $port = "release\portable\BanglaVoiceCommander"
+          Copy-Item -Recurse dist\BanglaVoiceCommander $port
+          New-Item "$port\portable.flag" -ItemType File | Out-Null
+          Compress-Archive -Path $port -DestinationPath release\BanglaVoiceCommander_Portable.zip -Force
+          Get-FileHash release\BanglaVoiceCommander_Setup.exe, release\BanglaVoiceCommander_Portable.zip | Format-List | Out-File release\SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BanglaVoiceCommander-Windows
+          path: |
+            release/BanglaVoiceCommander_Setup.exe
+            release/BanglaVoiceCommander_Portable.zip
+            release/SHA256.txt
+            release/selftest_*.json
+          retention-days: 30
+      - name: Attach to GitHub Release (tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/BanglaVoiceCommander_Setup.exe
+            release/BanglaVoiceCommander_Portable.zip

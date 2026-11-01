@@ -47,6 +47,9 @@ never reported as success. Custom commands cannot run sensitive actions. Audio i
 and can be disabled/cleared (Settings → Privacy).
 
 ## 4. Offline details → [docs/OFFLINE_MODELS.md](docs/OFFLINE_MODELS.md)
+> **Licence notice:** the bundled Bangla voice (Meta MMS-TTS Bengali) is **CC-BY-NC 4.0 — non-commercial use only**, with
+> attribution. Do not sell or commercially distribute the installer while this voice is inside. See the licence page
+> in the installer / `models\MODEL_LICENSES.txt`. The speech-recognition model (Whisper) is MIT.
 ## 5. What is tested / unsupported → [docs/STATUS.md](docs/STATUS.md)
 
 ## 6. Custom commands

@@ -26,8 +26,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: models
-          key: models-${{ inputs.whisper || 'small' }}-v1
-      - name: Download offline models (build step only; the shipped app never downloads)
+          key: models-${{ inputs.whisper || 'small' }}-v2
+      - name: Download + validate offline models (build step only; the shipped app never downloads)
+        # Fails the build (exit 2) if the Bangla TTS model cannot be fetched/validated - TTS is never silently skipped.
         run: python tools/fetch_models.py --whisper ${{ inputs.whisper || 'small' }}
       - name: PyInstaller
         run: pyinstaller BanglaVoiceCommander.spec --noconfirm --clean

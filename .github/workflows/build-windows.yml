@@ -10,13 +10,15 @@ on:
 
 jobs:
   build:
-    env:
-      PYTHONUTF8: "1"
-      PYTHONIOENCODING: "utf-8"
     runs-on: windows-2022
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      - name: Set UTF-8 Python environment
+        shell: pwsh
+        run: |
+          "PYTHONUTF8=1" >> $env:GITHUB_ENV
+          "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: pip }
       - name: Install dependencies
@@ -34,7 +36,7 @@ jobs:
         # Fails the build (exit 2) if the Bangla TTS model cannot be fetched/validated - TTS is never silently skipped.
         run: python tools/fetch_models.py --whisper ${{ inputs.whisper || 'small' }}
       - name: PyInstaller
-        run: pyinstaller BanglaVoiceCommander.spec --noconfirm --clean
+        run: python -X utf8 -m PyInstaller BanglaVoiceCommander.spec --noconfirm --clean
       - name: Bundle models next to the exe
         run: Copy-Item -Recurse -Force models dist\BanglaVoiceCommander\models
       - name: OFFLINE self-test (outbound network blocked by firewall)

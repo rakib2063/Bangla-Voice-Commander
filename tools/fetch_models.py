@@ -61,18 +61,6 @@ class FetchError(RuntimeError):
     """A download or validation failure with a user-readable message."""
 
 
-def configure_console_encoding() -> None:
-    """Use UTF-8 for Windows/GitHub Actions logs; never let log encoding break a successful build."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if callable(reconfigure):
-            try:
-                reconfigure(encoding="utf-8", errors="replace")
-            except (OSError, ValueError):
-                # Some wrapped/non-console streams cannot be reconfigured.
-                pass
-
-
 # ---------------------------------------------------------------------------------------------------------------
 def hf_download(repo: str, filename: str, dest: Path) -> Path:
     try:
@@ -214,7 +202,6 @@ def write_licenses(root: Path, tts_source: str) -> None:
 
 
 def main(argv=None) -> int:
-    configure_console_encoding()
     ap = argparse.ArgumentParser()
     ap.add_argument("--whisper", default="small", choices=sorted(WHISPER_REPOS))
     ap.add_argument("--tts-repo", action="append", default=[], help="extra Hugging Face source to try first: user/repo[:subfolder]")

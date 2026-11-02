@@ -13,7 +13,10 @@ for pkg in ("faster_whisper", "ctranslate2", "onnxruntime", "tokenizers", "av", 
 hiddenimports += ["pyttsx3.drivers", "pyttsx3.drivers.sapi5", "win32com.client"]
 
 a = Analysis(["main.py"], pathex=["."], binaries=binaries, datas=datas, hiddenimports=hiddenimports,
-             excludes=["matplotlib", "scipy", "torch", "IPython", "pytest", "PyQt5", "PyQt6", "PySide2"],
+             excludes=["matplotlib", "scipy", "torch", "IPython", "pytest", "PyQt5", "PyQt6", "PySide2",
+                       # Optional WebRTC data-channel helper; not used by this app. Its third-party
+                       # PyInstaller hook has caused Windows hook-import failures.
+                       "webbrtcdav"],
              noarchive=False)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="BanglaVoiceCommander", console=False,

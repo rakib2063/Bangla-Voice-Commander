@@ -1,3 +1,5 @@
-pyinstaller>=6.6
-huggingface_hub>=0.23
-Pillow>=10.0
+# Pinned Windows packaging toolchain to avoid hook API drift.
+pyinstaller==6.11.1
+pyinstaller-hooks-contrib==2024.10
+huggingface_hub>=0.23,<1.0
+Pillow>=10.0,<12.0

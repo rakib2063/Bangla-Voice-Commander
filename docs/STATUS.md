@@ -11,7 +11,7 @@
 1. Frozen-app start-up, PyInstaller hidden-import completeness (may need small `spec` tweaks on first CI run).
 2. Offline Whisper load + **Bangla recognition accuracy** (CI runs a synthetic TTS→STT→command round-trip, but real
    human speech with your microphone/accent is the real test).
-3. Offline Bangla TTS: the source repo `csukuangfj/vits-mms-ben` was **not directly confirmed by me** (my tools could not open it); the pattern is confirmed from sherpa-onnx's own code. `fetch_models.py` now fails the build if the repo/files are wrong or the model lacks Bangla tokens, and tries a real synthesis. Audio quality is untested.
+3. Offline Bangla TTS: source `willwade/mms-tts-multilingual-models-onnx` folder `ben/` was confirmed to exist (page opened, licence cc-by-nc-4.0, upload history lists `ben/model.onnx` + `ben/tokens.txt`), but I have **not downloaded or heard it**. `fetch_models.py` fails the build if the files/tokens are wrong or synthesis fails. Voice quality and whether the model needs text normalisation are untested.
 4. Silent install / uninstall, shortcuts.
 5. Microphone capture + VAD, real latency on your CPU.
 6. Mouse/keyboard/scroll, browser shortcuts, UI Automation click-by-name/numbered labels, volume (pycaw), brightness,
